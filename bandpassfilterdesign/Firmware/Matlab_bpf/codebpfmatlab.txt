@@ -1,0 +1,56 @@
+clc;
+clear all; 
+close all;
+
+f_hp = 500;                 
+w_hp = 2 * pi * f_hp;        
+
+f_lp = 50000;                
+w_lp = 2 * pi * f_lp;        
+
+
+Q13 = 0.5412;                 
+Q24 = 1.3065;               
+
+
+K1 = 1;  K2 = 1;  K3 = 1;  K4 = 1;
+
+num1 = [K1 0 0];
+den1 = [1, (w_hp/Q13), (w_hp^2)];
+stage1 = tf(num1, den1);
+
+
+num2 = [K2 0 0];
+den2 = [1, (w_hp/Q24), (w_hp^2)];
+stage2 = tf(num2, den2);
+
+
+num3 = [K3 * (w_lp^2)];
+den3 = [1, (w_lp/Q13), (w_lp^2)];
+stage3 = tf(num3, den3);
+
+
+num4 = [K4 * (w_lp^2)];
+den4 = [1, (w_lp/Q24), (w_lp^2)];
+stage4 = tf(num4, den4);
+
+Tot = stage1*stage2 *stage3 *stage4;
+
+f = logspace(1, 6, 2000); 
+w = 2 * pi * f;
+[mag, phase] = bode(Tot, w);
+mag_dB = 20 * log10(squeeze(mag));
+
+figure;
+subplot(2,1,1);
+semilogx(f, mag_dB, 'Color', [0 0.6 0], 'LineWidth', 2);
+grid on;
+title(' 8th-Order Bandpass Filter');
+xlabel('Frequency(Hz)');
+ylabel('Magnitude(dB)');
+
+subplot(2,1,2);
+semilogx(f, squeeze(phase), 'Color', [0 0.4 0.8], 'LineWidth', 2);
+grid on;
+xlabel('Frequency(Hz)');
+ylabel('Phase(Degrees)');
