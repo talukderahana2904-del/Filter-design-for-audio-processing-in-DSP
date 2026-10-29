@@ -1,437 +1,328 @@
-# Microphone-Based Audio Acquisition and Filtering Using an 8th-Order Butterworth Filter
+# 8th-Order Butterworth Band-Pass Filter with ALSA Audio Capture, ADC Interfacing, and MATLAB Analysis
 
-**ALSA Audio Capture | Analog Signal Conditioning | Octave-Band Analysis | MATLAB Signal Processing**
+## Project Overview
 
-![Filter](https://img.shields.io/badge/Filter-8th--Order%20Butterworth-blue)
-![Audio](https://img.shields.io/badge/Audio-ALSA%20Capture-green)
-![Analysis](https://img.shields.io/badge/Analysis-MATLAB-orange)
-![Signal Processing](https://img.shields.io/badge/Signal%20Processing-Octave%20Bands-purple)
+This project focuses on the design, simulation, and analysis of an **8th-order Butterworth band-pass filter** for audio signal processing. The system is designed to pass frequencies between **500 Hz and 50 kHz** while attenuating frequencies outside the specified range.
 
----
+The project combines analog filter design, microphone-based audio acquisition, Linux ALSA (Advanced Linux Sound Architecture) audio capture, ADC interfacing, and MATLAB-based signal analysis. It also explores the relationship between wideband audio filtering and **octave-band analysis**, a technique commonly used in acoustics and audio engineering to study sound energy across different frequency ranges.
 
-## 1. Project Overview
+The filter is designed by cascading a fourth-order high-pass filter (HPF) with a fourth-order low-pass filter (LPF). Each fourth-order section consists of two second-order active Sallen–Key stages, resulting in an overall eighth-order response.
 
-This project focuses on microphone-based audio acquisition, analog signal conditioning, and frequency-domain analysis using an **8th-order Butterworth band-pass filter**. The system combines audio capture through the Advanced Linux Sound Architecture (ALSA), microphone input, hardware-based filtering, and MATLAB-based signal analysis to investigate the frequency characteristics of captured audio.
+## Project Objectives
 
-The analog filter is designed to attenuate unwanted low-frequency and high-frequency components while preserving signals within the intended passband. The project also explores the relationship between frequency-selective filtering and **octave-band analysis**, a fundamental technique in acoustic measurement, noise characterization, and audio signal processing.
+- Design an 8th-order Butterworth band-pass filter with a passband from 500 Hz to 50 kHz.
+- Implement the filter using cascaded high-pass and low-pass sections.
+- Capture microphone audio using ALSA, an open-source audio interface for Linux.
+- Investigate the relationship between analog filtering, audio sampling, and ADC requirements.
+- Analyze filter characteristics, frequency spectra, signal amplitudes, and decibel levels using MATLAB.
+- Explore octave-band theory and its application to frequency-domain audio analysis.
+- Evaluate filter performance through circuit simulation and mathematical modeling.
 
-MATLAB is used to evaluate the filter response, perform frequency-domain calculations, analyse audio signals, and interpret magnitude spectra using decibel (dB) scaling. Together, these stages demonstrate the relationship between analog electronics, Linux-based audio acquisition, and digital signal analysis.
+## System Specifications
 
-## 2. Objectives
-
-- Design and evaluate an 8th-order Butterworth band-pass filter for audio signal conditioning.
-- Capture microphone audio using ALSA on a Linux-based system.
-- Investigate the attenuation of unwanted frequency components through analog filtering.
-- Relate the filter's frequency response to octave-band theory and acoustic frequency analysis.
-- Use MATLAB to perform signal analysis, frequency-response calculations, and spectral visualisation.
-- Evaluate signal magnitude in decibels and compare frequency-domain characteristics before and after filtering.
-- Understand the practical interaction between microphone acquisition, analog filtering, sampling, and digital signal processing.
-
-## 3. System Architecture
-
-The project follows a signal-processing workflow that connects acoustic input to frequency-domain evaluation.
-
-```text
-          Acoustic Environment
-                   |
-                   v
-             Microphone
-                   |
-                   v
-        Analog Audio Signal
-                   |
-                   v
-       8th-Order Butterworth
-          Band-Pass Filter
-                   |
-                   v
-       Filtered Audio Signal
-                   |
-             +-----+------+
-             |            |
-             v            v
-      Audio Acquisition   Analog Response
-       and ALSA Setup      Verification
-             |            |
-             v            v
-      Captured Samples   SPICE Analysis
-             |
-             v
-       MATLAB Analysis
-             |
-       +-----+---------+
-       |               |
-       v               v
-  Frequency Spectrum  dB Analysis
-       |
-       v
-  Octave-Band Interpretation
-```
-
-**Implementation note:** ALSA provides the Linux audio capture interface; it does not itself implement the analog filter. The microphone, analog filter, and capture device must be connected in a way that supports the intended measurement. The diagram represents the functional workflow, with the precise hardware and capture arrangement determined by the implementation.
-
-## 4. Technical Specifications
-
-| Parameter | Description |
+| Parameter | Specification |
 |---|---|
-| Filter response | Butterworth |
-| Filter order | 8th order |
-| Filter topology | Active Sallen–Key |
+| Filter type | Butterworth band-pass |
+| Overall filter order | 8th order |
 | Lower cutoff frequency | 500 Hz |
 | Upper cutoff frequency | 50 kHz |
-| Filter implementation | Cascaded high-pass and low-pass sections |
-| Audio input | Microphone |
-| Audio capture interface | ALSA (Advanced Linux Sound Architecture) |
-| Analysis environment | MATLAB |
-| Circuit verification | SPICE-based AC analysis |
-| Spectral analysis | Frequency-domain and FFT analysis |
-| Magnitude representation | Decibel (dB) scale |
-| Acoustic interpretation | Octave-band frequency analysis |
+| Geometric centre frequency | Approximately 5 kHz |
+| Bandwidth | 49.5 kHz |
+| Upper-to-lower cutoff ratio | 100:1 |
+| Filter architecture | Fourth-order HPF cascaded with fourth-order LPF |
+| Active filter topology | Sallen–Key |
+| Intended supply voltage | ±5 V, subject to component compatibility |
+| Audio capture interface | ALSA on Linux |
+| Signal analysis platform | MATLAB |
+| Theoretical minimum sampling rate | Greater than 100 kHz for capturing the full specified band |
 
-*The filter specifications describe the original circuit design. The usable frequency range of the complete audio system is also constrained by the microphone, capture hardware, sampling rate, and analog front-end.*
+The achievable frequency range depends on the microphone, analog components, operational amplifiers, ADC, and audio interface. A conventional audio interface operating at 44.1 kHz or 48 kHz cannot capture the entire frequency band up to 50 kHz.
 
-## 5. Eighth-Order Butterworth Filter Design
+## 1. Filter Design and Mathematical Foundation
 
-### 5.1 Design rationale
+### 1.1 Centre Frequency
 
-A Butterworth filter is characterised by a maximally flat magnitude response in its passband. This makes it useful when the objective is to preserve the relative amplitudes of in-band frequency components without introducing passband ripple.
+The geometric centre frequency of a band-pass filter is calculated using the lower and upper cutoff frequencies:
 
-The eighth-order band-pass response is realised by cascading:
+**f₀ = √(fL × fH)**
 
-- A fourth-order high-pass filter to attenuate low-frequency components below the lower cutoff.
-- A fourth-order low-pass filter to attenuate high-frequency components above the upper cutoff.
+For the selected cutoff frequencies:
 
-Each fourth-order section consists of two second-order Sallen–Key stages, resulting in four active filter stages overall.
+**f₀ = √(500 × 50,000)**
 
-The intended passband extends from 500 Hz to 50 kHz. The design therefore provides frequency-selective conditioning over a wide frequency range, subject to the actual circuit response and component tolerances.
+**f₀ = 5,000 Hz = 5 kHz**
 
-### 5.2 Key design calculations
+This value represents the geometric centre of the specified passband. It does not imply that the filter has a narrow bandwidth around 5 kHz.
 
-The centre frequency is defined using the geometric mean of the cutoff frequencies:
+### 1.2 Bandwidth
 
-\[
-f_0=\sqrt{f_L f_H}
-\]
+The bandwidth is the difference between the upper and lower cutoff frequencies:
 
-For \(f_L=500\,\text{Hz}\) and \(f_H=50{,}000\,\text{Hz}\):
+**BW = fH − fL**
 
-\[
-f_0=\sqrt{500\times50{,}000}
-=5{,}000\,\text{Hz}
-\]
+**BW = 50,000 − 500 = 49,500 Hz**
 
-The bandwidth is:
+Therefore, the filter bandwidth is **49.5 kHz**.
 
-\[
-BW=f_H-f_L
-\]
+The cutoff-frequency ratio is:
 
-\[
-BW=50{,}000-500=49{,}500\,\text{Hz}
-\]
+**fH / fL = 50,000 / 500 = 100**
 
-The ratio of the cutoff frequencies is:
+### 1.3 Butterworth Filter Response
 
-\[
-\frac{f_H}{f_L}=\frac{50{,}000}{500}=100
-\]
+A Butterworth filter is designed to provide a maximally flat magnitude response in its passband. Its idealized low-pass magnitude response is expressed as:
 
-These calculations establish the frequency range and nominal centre frequency of the filter.
+**|H(jω)|² = 1 / [1 + (ω / ωc)²ⁿ]**
 
-### 5.3 Sallen–Key implementation
+Where:
 
-The Sallen–Key topology uses operational amplifiers with resistor-capacitor networks to realise second-order active filters. Component values determine the cutoff frequency and quality factor of each stage.
+- H(jω) represents the frequency response.
+- ω is the angular frequency.
+- ωc is the cutoff angular frequency.
+- n is the filter order.
 
-For the standard Sallen–Key configuration, the cutoff-frequency relationship is:
+The angular cutoff frequency is related to the cutoff frequency in hertz by:
 
-\[
-f_c=\frac{1}{2\pi\sqrt{R_1R_2C_1C_2}}
-\]
+**ωc = 2πfc**
 
-The quality factor \(Q\) depends on the component ratios and amplifier gain. The individual second-order stages are selected to approximate the required Butterworth pole distribution.
+At the cutoff frequency, the ideal Butterworth magnitude is approximately 0.707 of its passband value, corresponding to approximately −3.01 dB.
 
-The combined response is verified using circuit-level AC analysis, with particular attention to cutoff frequencies, passband gain, roll-off, and phase response.
+The combined response of the cascaded high-pass and low-pass sections is:
 
-## 6. Microphone Audio Acquisition Using ALSA
+**HBP(s) = HHP(s) × HLP(s)**
 
-The project uses the **Advanced Linux Sound Architecture (ALSA)**, an open-source Linux audio subsystem, to interface with the audio capture hardware and acquire microphone signals.
+Where:
 
-ALSA provides access to capture devices and supports configuration of audio parameters such as sample rate, channel count, and sample format. The captured audio can subsequently be processed and analysed in MATLAB.
+- HBP(s) is the overall band-pass transfer function.
+- HHP(s) is the high-pass transfer function.
+- HLP(s) is the low-pass transfer function.
+- s is the complex frequency variable.
 
-The acquisition workflow includes:
+The actual response should be verified through circuit simulation and hardware measurements because practical component tolerances and interactions between stages can affect the final response.
 
-1. Identifying the available audio capture device.
-2. Configuring the microphone input and capture parameters.
-3. Recording audio samples through ALSA-compatible tools or applications.
-4. Saving the captured signal in a suitable format for analysis.
-5. Importing the recorded audio into MATLAB.
-6. Evaluating the signal in the time and frequency domains.
+### 1.4 Sallen–Key Filter Stage
 
-The sampling configuration is particularly important because the digital representation must adequately cover the frequency range being investigated.
+The second-order Sallen–Key topology is used as the basis for the active filter stages. For a standard second-order stage, the natural frequency is determined by its resistor and capacitor values:
 
-For a maximum frequency of 50 kHz, the theoretical Nyquist criterion requires:
+**fc = 1 / [2π√(R₁R₂C₁C₂)]**
 
-\[
-f_s>2f_{\max}=100\,\text{kHz}
-\]
+The damping and quality factor depend on the circuit topology, component ratios, and amplifier gain. Component values must therefore be selected according to the intended response of each stage rather than using the cutoff equation alone.
 
-A practical implementation should select a supported sampling rate above this minimum and allow appropriate margin for anti-aliasing and transition-band attenuation. A nominal rate of 200 kHz may be considered where supported by the microphone, capture interface, and acquisition software.
+The fourth-order high-pass and low-pass sections are each formed from two second-order stages. For a fourth-order Butterworth response, the two second-order sections have approximate quality factors:
 
-**Important:** Standard consumer audio interfaces often do not support 200 kHz capture. The actual sample rate must be verified from the selected ALSA device. If the hardware supports only conventional audio rates, the usable analysis bandwidth must be restricted accordingly.
+- Q₁ ≈ 0.5412
+- Q₂ ≈ 1.3066
 
-The ALSA capture path and the analog-filter output path must also be distinguished. If the objective is to measure the filtered signal, the capture interface must receive the filter output through a compatible input stage rather than merely recording the microphone independently.
+The high-pass and low-pass sections must be designed separately and then cascaded to obtain the intended overall band-pass behavior.
 
-## 7. Relevance of Octave-Band Theory in Audio Processing
+## 2. Audio Acquisition Using ALSA
 
-### 7.1 What is an octave band?
+ALSA (Advanced Linux Sound Architecture) is an open-source audio subsystem for Linux that provides interfaces for audio capture and playback.
 
-An octave band is a frequency interval in which the upper frequency is twice the lower frequency:
+In this project, ALSA is used to acquire microphone audio for subsequent signal processing and analysis. The captured audio can be saved as a digital recording and imported into MATLAB for examination in the time and frequency domains.
 
-\[
-f_H=2f_L
-\]
+The conceptual acquisition workflow is:
 
-Octave-band analysis is widely used in acoustics, environmental noise assessment, audio measurement, and sound-system evaluation because it groups spectral information into perceptually and physically meaningful frequency ranges.
+1. A microphone converts acoustic pressure variations into an electrical signal.
+2. The analog signal is conditioned and filtered by the analog circuit, where the hardware configuration supports this signal path.
+3. The ADC converts the analog signal into digital samples.
+4. ALSA provides the software interface for capturing audio samples supported by the connected device.
+5. MATLAB is used to analyze the recorded signal, frequency spectrum, amplitude, and decibel levels.
 
-For example, adjacent octave bands may be represented by intervals such as 250–500 Hz, 500 Hz–1 kHz, 1–2 kHz, and 2–4 kHz.
+**Important hardware consideration:** ALSA is an audio-capture software interface; it does not itself implement the analog Butterworth filter. If the microphone is connected directly to a conventional computer sound card, the recorded signal may not pass through the designed analog filter.
 
-Unlike a linear-frequency division, octave bands use a logarithmic frequency scale. Each band represents the same frequency ratio rather than the same absolute bandwidth.
+To evaluate the physical filter using ALSA recordings, the filter output must be connected to a suitable acquisition device, with appropriate signal conditioning and protection. The acquisition hardware must also support the required sampling rate and bandwidth.
 
-### 7.2 How octave-band theory relates to this project
+## 3. ADC Interfacing and Sampling Considerations
 
-The eighth-order Butterworth filter and octave-band analysis serve complementary purposes.
+The upper cutoff frequency of the designed filter is 50 kHz. To represent this frequency digitally, the sampling frequency must satisfy the Nyquist criterion:
 
-The **analog filter** determines which frequencies are attenuated or passed by the hardware. Octave-band analysis, on the other hand, provides a framework for grouping and interpreting the frequency content of the captured audio.
+**fs > 2fmax**
 
-This relationship is relevant in several ways:
+For a maximum frequency of 50 kHz:
 
-- **Frequency-selective measurement:** The filter limits the frequency range reaching the downstream measurement stage, subject to the response of the complete system.
-- **Acoustic noise analysis:** Frequency components can be grouped into octave bands to understand whether measured sound energy is concentrated in low-, mid-, or high-frequency regions.
-- **Spectral interpretation:** MATLAB can be used to calculate band-wise signal levels from the captured audio spectrum, making it easier to compare frequency regions.
-- **Filter-response evaluation:** The measured or simulated filter response can be compared with the octave-band boundaries to understand the influence of the filter on different frequency regions.
-- **Measurement-system design:** Octave-band concepts help connect the circuit's frequency-selective behaviour with practical acoustic instrumentation and sound-level analysis.
+**fs > 2 × 50,000**
 
-### 7.3 Octave-band calculations
+**fs > 100,000 samples/second**
 
-For a band with lower and upper frequencies \(f_1\) and \(f_2\), the octave ratio is:
+Thus, a sampling rate greater than 100 kHz is required for capturing the entire specified frequency band, with additional margin generally desirable for practical anti-aliasing and measurement requirements.
 
-\[
-\frac{f_2}{f_1}=2
-\]
+A sampling rate of 200 kHz may be considered as a design target, provided the ADC, audio interface, driver, and recording configuration support it. The actual configured sampling rate should be verified rather than assumed.
 
-The centre frequency of a band is commonly defined as:
+The ADC resolution also affects quantization noise and the dynamic range of the captured signal. For an ideal N-bit ADC, the number of quantization levels is:
 
-\[
-f_c=\sqrt{f_1f_2}
-\]
+**L = 2ᴺ**
 
-For a one-octave band spanning 1 kHz to 2 kHz:
+The approximate ideal full-scale quantization signal-to-noise ratio for a full-scale sinusoidal input is:
 
-\[
-f_c=\sqrt{1000\times2000}
-\approx1414.2\,\text{Hz}
-\]
+**SNR(dB) ≈ 6.02N + 1.76**
 
-This geometric-centre relationship is consistent with logarithmic frequency spacing.
+This is an ideal estimate. Actual performance also depends on the ADC architecture, analog noise, input signal level, and acquisition circuitry.
 
-For a captured signal, the energy within a selected band can be estimated by summing the squared magnitudes of the relevant FFT components, with suitable scaling and treatment of windowing, frequency resolution, and spectral leakage.
+## 4. Octave-Band Theory and Its Relevance
 
-Octave-band levels may then be expressed relative to a defined reference level. For acoustic sound-pressure measurements, the reference is typically \(20\,\mu\text{Pa}\). For ordinary digital audio samples, the result is instead expressed relative to a digital amplitude or power reference unless a calibrated microphone and measurement chain establish the conversion to physical sound pressure.
+Octave-band analysis is widely used in acoustics, environmental noise measurement, sound-level assessment, and audio engineering. An octave band is a frequency interval in which the upper band-edge frequency is twice the lower band-edge frequency.
 
-**Scope clarification:** The eighth-order Butterworth filter is not automatically an octave-band filter. It is a wide-band analog band-pass filter. True octave-band measurements require separate band-wise analysis or a bank of appropriately designed octave-band filters.
+The defining relationship is:
 
-## 8. MATLAB-Based Signal Analysis
+**fH = 2fL**
 
-MATLAB is used as the computational environment for analysing the filter characteristics and captured audio. Its role is to connect the theoretical circuit design with measurable signal behaviour.
+The geometric centre frequency of an octave band is:
 
-Depending on the implemented analysis scripts, the workflow can include:
+**fc = √(fL × fH)**
 
-### 8.1 Time-domain analysis
+For example, an octave band with lower and upper edges of 1 kHz and 2 kHz has a centre frequency of:
 
-The recorded audio signal is inspected in the time domain to examine its amplitude variation, duration, transient behaviour, and potential clipping.
+**fc = √(1,000 × 2,000)**
 
-For a discrete-time signal \(x[n]\), the root-mean-square amplitude is:
+**fc ≈ 1,414.2 Hz**
 
-\[
-x_{\mathrm{RMS}}=
-\sqrt{\frac{1}{N}\sum_{n=0}^{N-1}x[n]^2}
-\]
+The designed 500 Hz–50 kHz Butterworth filter is a wideband band-pass filter, **not an octave-band filter bank by itself**. Its role is to restrict the frequency range of interest before further analysis. Octave-band analysis can then be performed on the captured and filtered signal by dividing the spectrum into octave-width frequency bands and calculating the signal level within each band.
 
-The RMS value provides a measure of the signal's average magnitude over the selected observation window.
+For this project, octave-band theory provides a framework for examining how the recorded audio energy is distributed across logarithmically spaced frequency ranges. This relates the broad passband of the analog filter to more detailed acoustic analysis.
 
-### 8.2 Frequency-domain analysis using FFT
+A complete octave-band implementation requires additional digital processing, such as band-specific filtering or frequency-domain integration. The analog 8th-order Butterworth filter alone does not produce separate octave-band outputs.
 
-The Fast Fourier Transform (FFT) converts the captured time-domain samples into a frequency-domain representation.
+## 5. MATLAB-Based Signal Analysis
 
-For a sampling rate \(f_s\) and FFT length \(N\), the frequency spacing between bins is:
+MATLAB is used to analyze the captured audio and evaluate the designed filter mathematically. It can be used to construct a theoretical filter model, examine the frequency response, process recorded samples, and calculate relevant signal parameters.
 
-\[
-\Delta f=\frac{f_s}{N}
-\]
+### 5.1 Time-Domain Analysis
 
-The frequency corresponding to bin \(k\) is:
+Time-domain analysis helps examine signal amplitude and variations over time. For a sampled signal x[n], the root-mean-square (RMS) amplitude is:
 
-\[
-f_k=\frac{k f_s}{N}
-\]
+**xRMS = √[(1/N) × Σ x[n]²]**
 
-This frequency mapping allows the spectral content of the captured audio to be examined against the designed filter's passband.
+Where:
 
-A suitable window, such as the Hann window, can reduce spectral leakage when analysing finite-length audio segments.
+- x[n] is the sample at index n.
+- N is the total number of samples.
+- xRMS is the RMS amplitude of the signal.
 
-### 8.3 Filter magnitude and decibel calculations
+The RMS value provides a measure of the signal's effective amplitude and can be used when comparing recordings or evaluating signal levels, provided the signal scaling and measurement conditions are consistent.
 
-The magnitude response can be expressed in decibels relative to a reference amplitude:
+### 5.2 Frequency-Domain Analysis Using FFT
 
-\[
-G_{\mathrm{dB}}=
-20\log_{10}\left|\frac{V_{\mathrm{out}}}{V_{\mathrm{in}}}\right|
-\]
+The Fast Fourier Transform (FFT) is used to examine the frequency content of the captured audio. It helps identify dominant frequency components and determine how the signal energy is distributed across the spectrum.
 
-For an amplitude spectrum normalised to a reference amplitude \(A_{\mathrm{ref}}\):
+For a sampling frequency fs and an FFT length of N, the frequency-bin spacing is:
 
-\[
-L_{\mathrm{dB}}=
-20\log_{10}\left(\frac{A}{A_{\mathrm{ref}}}\right)
-\]
+**Δf = fs / N**
 
-For a power ratio:
+The frequency corresponding to bin k is:
 
-\[
-G_{\mathrm{dB}}=
-10\log_{10}\left(\frac{P_{\mathrm{out}}}{P_{\mathrm{in}}}\right)
-\]
+**fk = k × fs / N**
 
-The distinction between amplitude and power is important: amplitude ratios use \(20\log_{10}\), whereas power ratios use \(10\log_{10}\).
+Increasing the FFT length can provide finer frequency-bin spacing, although the effective frequency resolution also depends on the observation duration, windowing, and signal characteristics.
 
-MATLAB's decibel-domain plots make it easier to visualise attenuation, compare in-band and out-of-band components, and examine the dynamic range of captured audio.
+The measured spectrum can be used to investigate the frequency content before and after filtering, where corresponding input and output recordings are available.
 
-For example, a voltage gain of 0.707 relative to the passband corresponds approximately to a −3 dB point:
+### 5.3 Decibel Calculations
 
-\[
-20\log_{10}(0.707)\approx-3.01\,\text{dB}
-\]
+Decibels provide a logarithmic representation of signal amplitude or power ratios. For voltage measurements across the same impedance, the gain in decibels is:
 
-This provides a useful reference when checking the nominal cutoff frequencies.
+**GdB = 20 log₁₀(|Vout / Vin|)**
 
-### 8.4 Filter calculations and response verification
+For an amplitude A referenced to Aref, the level is:
 
-The analytical and MATLAB-based evaluations can be used to examine:
+**LdB = 20 log₁₀(A / Aref)**
 
-- Lower and upper cutoff frequencies.
-- Nominal centre frequency and bandwidth.
-- Butterworth magnitude response and expected attenuation.
-- Frequency-domain characteristics of captured audio.
-- Signal magnitude expressed in dB.
-- Differences between the unfiltered and filtered spectra, where both signals are available.
-- The distribution of spectral energy across selected octave bands.
+For a power ratio, the decibel value is:
 
-The simulated response should be compared with the theoretical response and, where hardware measurements are available, with the measured response.
+**GdB = 10 log₁₀(Pout / Pin)**
 
-The actual MATLAB calculations and plots should be documented alongside the corresponding scripts so that the analysis can be reproduced.
+The reference quantity must be defined when reporting an absolute sound or signal level. For example, a digital audio amplitude expressed in dBFS uses the digital full-scale level as its reference, whereas sound pressure level uses a reference sound pressure.
 
-## 9. Circuit Simulation and Verification
+At the ideal cutoff frequency of a Butterworth response, the magnitude is:
 
-SPICE-based simulation is used to investigate the analog filter's electrical response before physical testing.
+**|H(jωc)| = 1 / √2 ≈ 0.707**
 
-The verification workflow includes:
+The corresponding gain relative to the passband reference is:
 
-1. Constructing the cascaded Sallen–Key high-pass and low-pass stages.
-2. Performing AC analysis across a frequency range extending below and above the intended passband.
-3. Plotting output magnitude in decibels and phase.
-4. Checking the lower and upper cutoff regions.
-5. Examining passband gain and roll-off.
-6. Comparing the simulated response with analytical calculations and MATLAB results.
+**20 log₁₀(0.707) ≈ −3.01 dB**
 
-The expected asymptotic attenuation rate of a fourth-order high-pass or low-pass section is approximately 80 dB per decade on its respective stopband side. The realised response depends on the circuit topology, component values, operational-amplifier characteristics, and loading.
+When using MATLAB, the decibel calculation must match the quantity being measured. Voltage or amplitude ratios use 20 log₁₀, while power ratios use 10 log₁₀. For FFT plots, the selected amplitude normalization and reference should be stated clearly.
 
-Simulation and hardware measurement should be treated as separate verification stages. A simulated response alone does not establish the performance of the complete microphone and audio-capture system.
+### 5.4 Filter Response Analysis
 
-## 10. Results and Performance Evaluation
+MATLAB can be used to calculate and plot the theoretical magnitude response of the filter. The analysis helps verify whether the intended passband and attenuation trends are consistent with the design.
 
-The project can be evaluated using the following metrics, provided that the corresponding simulations or measurements have been completed.
+Useful analysis tasks include:
 
-| Metric | Purpose |
-|---|---|
-| Lower cutoff frequency | Evaluates low-frequency rejection and the lower passband boundary |
-| Upper cutoff frequency | Evaluates high-frequency rejection and the upper passband boundary |
-| Passband gain | Measures the signal magnitude retained within the intended passband |
-| Stopband attenuation | Quantifies the suppression of unwanted frequency components |
-| Frequency resolution | Determines the spacing of FFT frequency bins |
-| RMS amplitude | Characterises the signal level over the selected interval |
-| dB magnitude | Supports comparison of signal and filter-response levels |
-| Octave-band levels | Summarise energy within selected logarithmic frequency intervals |
+- Plotting the magnitude response in decibels.
+- Identifying the lower and upper cutoff frequencies.
+- Comparing theoretical and simulated responses.
+- Examining the FFT of recorded audio.
+- Calculating RMS amplitude and signal-level changes.
+- Comparing frequency-domain results before and after filtering.
+- Evaluating octave-band levels when the corresponding bandwise processing has been implemented.
 
-Recommended plots for the project report include:
+The MATLAB model and hardware measurements should be treated as separate forms of evidence. A theoretical model does not establish the physical performance of the completed circuit unless supported by simulation or measurement.
 
-- Analog filter Bode magnitude and phase response.
-- Time-domain waveform of the captured microphone signal.
-- FFT magnitude spectrum of the recorded audio.
-- Frequency-domain comparison before and after filtering, if both signals are available.
-- Octave-band level distribution.
-- MATLAB plots showing the relationship between the theoretical and simulated filter response.
+## 6. Circuit Simulation and Verification
 
-Numerical results should be populated from the actual MATLAB output, circuit simulation, or hardware measurements rather than inferred from the nominal design values.
+Circuit simulation is used to examine the designed filter response before hardware implementation. The project workflow includes AC frequency-response analysis and mathematical modeling.
 
-## 11. Tools and Technologies
+The circuit has been explored using TINA-TI, with MATLAB used for theoretical and signal-processing analysis. Additional cross-verification in PSpice or LTspice can be used to compare the frequency response and check whether the simulated cutoff behavior agrees with the intended design.
 
-| Tool or technology | Application |
-|---|---|
-| ALSA | Linux microphone audio capture and audio-device configuration |
-| Microphone | Acoustic signal acquisition |
-| Analog electronics | Eighth-order active band-pass filter implementation |
-| Sallen–Key topology | Realisation of second-order active filter sections |
-| SPICE simulators | AC response and circuit-level verification |
-| MATLAB | Signal processing, numerical calculations, spectral analysis, and visualisation |
-| FFT | Conversion of audio samples into the frequency domain |
-| Octave-band theory | Logarithmic frequency grouping and acoustic interpretation |
-| Decibel analysis | Quantitative evaluation of relative signal magnitude |
+Further verification can include:
 
-## 12. Engineering Significance and Applications
+- Confirming the lower and upper cutoff frequencies.
+- Checking passband gain and attenuation.
+- Reviewing the response of each second-order stage.
+- Assessing sensitivity to resistor and capacitor tolerances.
+- Checking operational-amplifier bandwidth and slew-rate limitations.
+- Comparing simulation results with measured hardware response.
 
-This project demonstrates the integration of analog electronics and digital signal analysis in an audio-processing workflow.
+The status of each verification task should be updated as the work progresses. Simulation, PCB fabrication, and bench testing should only be marked complete after the corresponding work has actually been performed.
 
-The hardware filter provides frequency-selective signal conditioning, while ALSA supports the acquisition of digital audio samples from a Linux-based capture device. MATLAB provides the numerical tools needed to inspect spectral content, evaluate signal magnitude, and relate the measured frequency distribution to octave-band analysis.
+## 7. End-to-End Project Workflow
 
-The underlying concepts are relevant to:
+1. **Analog filter design:** Design the fourth-order high-pass and fourth-order low-pass sections and cascade them to obtain the overall band-pass response.
+2. **Circuit simulation:** Evaluate the AC response and verify the expected cutoff behavior.
+3. **Hardware implementation:** Assemble the circuit using suitable components and verify supply, bias, and signal-path requirements.
+4. **Audio acquisition:** Capture microphone audio through ALSA using an acquisition device that supports the intended bandwidth and sampling rate.
+5. **MATLAB processing:** Import the recorded data and perform time-domain, FFT, RMS, and decibel analysis.
+6. **Octave-band evaluation:** Apply separate octave-band filtering or frequency-domain band integration to calculate bandwise signal levels.
+7. **Validation:** Compare theoretical, simulated, and measured results where all three are available.
 
-- Acoustic measurement and noise characterisation.
-- Audio front-end design and signal conditioning.
-- Frequency-response analysis of analog circuits.
-- Embedded Linux audio acquisition.
-- Digital signal processing and spectral analysis.
-- Measurement-system design and verification.
+## 8. Limitations and Practical Considerations
 
-The project also highlights an important engineering consideration: the overall measurement bandwidth is determined by the complete signal chain, not by the analog filter alone.
+- The microphone's frequency response must cover the frequencies being investigated.
+- A conventional sound card may not support sampling above 100 kHz and therefore may not capture the full 50 kHz upper band.
+- ALSA provides the capture interface but does not establish that the signal has passed through the analog filter.
+- The analog filter's response depends on component tolerances and the bandwidth of the operational amplifiers.
+- The filter's actual passband gain and cutoff behavior must be confirmed through simulation or measurement.
+- Octave-band analysis requires additional processing beyond the wideband analog filter.
+- Decibel values must use a clearly defined reference and the appropriate amplitude or power formula.
+- The analog circuit, ADC, and acquisition hardware must be compatible with the intended signal range and sampling requirements.
 
-## 13. Future Improvements
+## 9. Project Status
 
-Potential extensions include:
+The project includes the design concept for an 8th-order Butterworth band-pass filter, circuit-level analysis in TINA-TI, and MATLAB-based theoretical and signal-processing work. ALSA is used as the Linux audio-capture interface.
 
-- Calibrating the microphone and acquisition chain for absolute sound-pressure-level measurements.
-- Implementing a verified octave-band analysis routine in MATLAB.
-- Comparing the theoretical, simulated, and measured filter responses.
-- Evaluating component tolerances and operational-amplifier limitations.
-- Investigating noise, clipping, sampling limitations, and aliasing in the acquisition chain.
-- Comparing analog filtering with a digital IIR or FIR implementation.
-- Automating audio capture, spectral analysis, and report generation.
+The following items should be marked complete only after implementation and verification:
 
-## 14. References
+- PSpice/LTspice cross-validation.
+- Component-tolerance or Monte Carlo analysis.
+- PCB layout and fabrication.
+- Physical filter response measurements.
+- Verified audio capture through the filter and ADC path.
+- Experimental comparison of MATLAB, simulation, and hardware results.
+- Implementation of octave-band calculations on recorded audio.
 
-1. S. Butterworth, “On the Theory of Filter Amplifiers,” *Experimental Wireless and the Wireless Engineer*, vol. 7, pp. 536–541, 1930.
-2. R. P. Sallen and E. L. Key, “A Practical Method of Designing RC Active Filters,” *IRE Transactions on Circuit Theory*, vol. 2, no. 1, pp. 74–85, 1955.
-3. Texas Instruments, *Analysis of the Sallen-Key Architecture*, Application Report SLOA024B.
-4. ALSA Project, *Advanced Linux Sound Architecture*. https://www.alsa-project.org/
-5. MathWorks, *Signal Processing Toolbox Documentation*. https://www.mathworks.com/help/signal/
-6. A. V. Oppenheim and R. W. Schafer, *Discrete-Time Signal Processing*, 3rd ed., Prentice Hall, 2010.
+## 10. Conclusion
 
----
+This project brings together analog active-filter design, audio acquisition, ADC sampling considerations, and MATLAB-based signal analysis. The 8th-order Butterworth band-pass filter is designed to isolate the 500 Hz–50 kHz frequency range, while ALSA provides a software interface for acquiring supported microphone or device audio.
 
-**Author:** Ahana Talukder  
-B.Tech, Electronics and Communication Engineering  
-Institute of Engineering and Management (IEM), Kolkata
+MATLAB supports the evaluation of time-domain signals, FFT spectra, RMS amplitude, and decibel levels. Octave-band theory extends the analysis by providing a logarithmic framework for studying sound energy across separate frequency bands, provided that the appropriate bandwise processing is implemented.
 
+The combined workflow provides a foundation for studying the relationship between analog filter characteristics and digital audio analysis, while highlighting the importance of validating the complete hardware and acquisition chain.
 
-If you find this project useful, consider giving it a ⭐
+## References
 
-</div>
+- ALSA Project: https://www.alsa-project.org/
+- MathWorks MATLAB Documentation: https://www.mathworks.com/help/matlab/
+- Butterworth filter and active-filter design references.
+- Sallen–Key active-filter design references.
+- Relevant acoustics and octave-band measurement standards.
